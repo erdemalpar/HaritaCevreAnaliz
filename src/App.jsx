@@ -197,98 +197,104 @@ const App = () => {
       .map(c => `node${c.tags}(around:${radius},${coords.lat},${coords.lon});way${c.tags}(around:${radius},${coords.lat},${coords.lon});`)
       .join('');
 
-    const query = `
-      [out:json][timeout:30];
-      (
-        ${selectedTags}
-      );
-      out body center;
-    `;
+    const query = `[out:json][timeout:30];(${selectedTags});out body center;`;
 
-    try {
-      // CORS sorunları için cache-busting parametresi ekliyoruz
-      const response = await fetch(`https://overpass-api.de/api/interpreter?t=${Date.now()}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: `data=${encodeURIComponent(query)}`
-      });
+    // Overpass API için alternatif sunucular ve daha güvenilir istek yapısı
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter'
+    ];
 
-      if (!response.ok) throw new Error(`Sunucu hatası: ${response.status}`);
+    let success = false;
+    for (const endpoint of endpoints) {
+      if (success) break;
+      try {
+        const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
+          method: 'GET', // GET isteği bazen CORS sorunlarını daha kolay aşar
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
 
-      const text = await response.text();
-      if (!text.trim().startsWith('{')) throw new Error("Overpass sunucusu yoğun veya hata döndürdü. Lütfen biraz bekleyip tekrar deneyin.");
+        if (!response.ok) continue;
 
-      const data = JSON.parse(text);
-      const processedResults = data.elements.map(el => {
-        const catInfo = identifyCategory(el.tags);
-        const lat = el.lat || (el.center && el.center.lat);
-        const lon = el.lon || (el.center && el.center.lon);
-        const distance = calculateDistance(coords.lat, coords.lon, lat, lon);
-        return {
-          id: el.id,
-          name: el.tags.name || el.tags.operator || el.tags.description || "İsimsiz Yapı",
-          type: el.tags.amenity || el.tags.office || el.tags.shop || el.tags.highway || "Bina",
-          lat, lon, distance, category: catInfo
-        };
-      }).filter(el => el.lat && el.lon);
+        const data = await response.json();
+        if (!data || !data.elements) throw new Error("Veri formatı hatalı");
 
-      processedResults.sort((a, b) => a.distance - b.distance);
-      setResults(processedResults);
+        const processedResults = data.elements.map(el => {
+          const catInfo = identifyCategory(el.tags);
+          const lat = el.lat || (el.center && el.center.lat);
+          const lon = el.lon || (el.center && el.center.lon);
+          const distance = calculateDistance(coords.lat, coords.lon, lat, lon);
+          return {
+            id: el.id,
+            name: el.tags.name || el.tags.operator || el.tags.description || "İsimsiz Yapı",
+            type: el.tags.amenity || el.tags.office || el.tags.shop || el.tags.highway || "Bina",
+            lat, lon, distance, category: catInfo
+          };
+        }).filter(el => el.lat && el.lon);
 
-      processedResults.forEach(item => {
-        // Marker Ekleme
-        const marker = window.L.marker([item.lat, item.lon], {
-          icon: createCustomIcon(item.category.color)
-        })
-          .bindPopup(`
-            <div style="min-width: 220px; font-family: 'Segoe UI', sans-serif; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                <span style="background-color: ${item.category.color}; color: white; padding: 3px 10px; border-radius: 15px; font-size: 10px; font-weight: 800; text-transform: uppercase;">
-                  ${item.category.label}
-                </span>
-                <span style="font-size: 11px; font-weight: bold; color: #64748b;">${item.distance}m</span>
-              </div>
-              <strong style="color: #1e293b; font-size: 15px; display: block; margin-bottom: 6px; line-height: 1.4;">${item.name}</strong>
-              <p style="color: #64748b; font-size: 12px; margin-bottom: 12px;">${item.type}</p>
-              <a href="https://parselsorgu.tkgm.gov.tr/#ara/cografi/${item.lat}/${item.lon}" 
-                 target="_blank" 
-                 style="background: #10b981; color: white; padding: 10px; border-radius: 8px; font-size: 12px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800;">
-                TKGM SORGULA <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              </a>
-            </div>
-          `)
-          .addTo(map);
-        markersRef.current.push(marker);
+        processedResults.sort((a, b) => a.distance - b.distance);
+        setResults(processedResults);
 
-        // Kesik Çizgi ve Mesafe Etiketi Ekleme
-        const line = window.L.polyline([[coords.lat, coords.lon], [item.lat, item.lon]], {
-          color: item.category.color,
-          weight: 2,
-          dashArray: '8, 12',
-          opacity: 0.6
-        })
-          .bindTooltip(`${item.distance}m`, {
-            permanent: true,
-            direction: 'center',
-            className: 'distance-label'
+        processedResults.forEach(item => {
+          // Marker Ekleme
+          const marker = window.L.marker([item.lat, item.lon], {
+            icon: createCustomIcon(item.category.color)
           })
-          .addTo(map);
-        linesRef.current.push(line);
-      });
+            .bindPopup(`
+              <div style="min-width: 220px; font-family: 'Segoe UI', sans-serif; padding: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                  <span style="background-color: ${item.category.color}; color: white; padding: 3px 10px; border-radius: 15px; font-size: 10px; font-weight: 800; text-transform: uppercase;">
+                    ${item.category.label}
+                  </span>
+                  <span style="font-size: 11px; font-weight: bold; color: #64748b;">${item.distance}m</span>
+                </div>
+                <strong style="color: #1e293b; font-size: 15px; display: block; margin-bottom: 6px; line-height: 1.4;">${item.name}</strong>
+                <p style="color: #64748b; font-size: 12px; margin-bottom: 12px;">${item.type}</p>
+                <a href="https://parselsorgu.tkgm.gov.tr/#ara/cografi/${item.lat}/${item.lon}" 
+                   target="_blank" 
+                   style="background: #10b981; color: white; padding: 10px; border-radius: 8px; font-size: 12px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800;">
+                  TKGM SORGULA <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            `)
+            .addTo(map);
+          markersRef.current.push(marker);
 
-      if (processedResults.length > 0) {
-        const group = new window.L.featureGroup([...markersRef.current]);
-        map.fitBounds(group.getBounds().pad(0.2));
-        setActiveAccordion(processedResults[0].category.id);
+          // Kesik Çizgi ve Mesafe Etiketi Ekleme
+          const line = window.L.polyline([[coords.lat, coords.lon], [item.lat, item.lon]], {
+            color: item.category.color,
+            weight: 2,
+            dashArray: '8, 12',
+            opacity: 0.6
+          })
+            .bindTooltip(`${item.distance}m`, {
+              permanent: true,
+              direction: 'center',
+              className: 'distance-label'
+            })
+            .addTo(map);
+          linesRef.current.push(line);
+        });
+
+        if (processedResults.length > 0) {
+          const group = new window.L.featureGroup([...markersRef.current]);
+          map.fitBounds(group.getBounds().pad(0.2));
+          setActiveAccordion(processedResults[0].category.id);
+        }
+        success = true;
+      } catch (error) {
+        console.error(`${endpoint} hatası:`, error);
       }
-    } catch (error) {
-      console.error("Arama hatası:", error);
-      setErrorMsg(error.message);
-    } finally {
-      setLoading(false);
     }
+
+    if (!success) {
+      setErrorMsg("Overpass sunucularına bağlanılamadı. Lütfen farklı bir tarayıcı veya ağ ile tekrar deneyin (CORS kısıtlaması).");
+    }
+    setLoading(false);
   };
 
   const groupedResults = categories.reduce((acc, cat) => {
