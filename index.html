@@ -129,7 +129,6 @@ initMap();
 
 const initMap = () => {
 if (!window.L || map) return;
-// hassas yakınlaştırma (0.5) ayarları eklendi
 const leafletMap = window.L.map('map-container', {
 center: [coords.lat, coords.lon],
 zoom: 15,
@@ -395,7 +394,6 @@ item])).values());
 uniqueResults.sort((a, b) => a.distance - b.distance);
 
 setResults(uniqueResults);
-// Varsayılan olarak hepsini PDF seçimine ekle
 setSelectedForPdf(uniqueResults.map(r => r.id));
 drawPointsAndLines(uniqueResults);
 
@@ -420,6 +418,7 @@ if (window.innerWidth < 768) setIsSidebarOpen(false); } } catch (error) { setErr
   }
   };
 
+  // GRUPLANDIRILMIŞ VE TÜRKÇE DESTEKLİ PDF OLUŞTURMA
   const generatePDF = async () => {
   const selectedItems = results.filter(r => selectedForPdf.includes(r.id));
   if (selectedItems.length === 0) {
@@ -432,76 +431,107 @@ if (window.innerWidth < 768) setIsSidebarOpen(false); } } catch (error) { setErr
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Harita anlık görüntüsünü al
   const mapElement = document.getElementById('map-container');
-
   if (map) map.invalidateSize();
+  const mapCanvas = await window.html2canvas(mapElement, { useCORS: true, scale: 2 });
+  const mapImgData = mapCanvas.toDataURL('image/png');
 
-  const canvas = await window.html2canvas(mapElement, {
-  useCORS: true,
-  logging: false,
-  scale: 2
-  });
+  // Kategorik Gruplandırma
+  const groupedSelected = categories.reduce((acc, cat) => {
+  const groupItems = selectedItems.filter(item => item.category.id === cat.id);
+  if (groupItems.length > 0) acc.push({ category: cat, items: groupItems });
+  return acc;
+  }, []);
 
-  const mapImgData = canvas.toDataURL('image/png');
+  const reportContent = document.createElement('div');
+  reportContent.style.width = '800px';
+  reportContent.style.padding = '40px';
+  reportContent.style.fontFamily = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+  reportContent.style.backgroundColor = 'white';
+  reportContent.style.position = 'absolute';
+  reportContent.style.left = '-9999px';
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.setTextColor(59, 130, 246);
-  doc.text("CBS ANALIZ RAPORU", 20, 20);
+  reportContent.innerHTML = `
+  <div style="color: #2563eb; font-size: 28px; font-weight: 800; margin-bottom: 10px;">CBS ANALİZ RAPORU</div>
+  <div style="color: #64748b; font-size: 14px; margin-bottom: 25px; line-height: 1.6;">
+    <strong>Analiz Tarihi:</strong> ${new Date().toLocaleString('tr-TR')}<br />
+    <strong>Hazırlayan:</strong> Tuğba ŞERBETCİ<br />
+    <strong>Koordinatlar:</strong> ${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}<br />
+    <strong>Tarama Yarıçapı:</strong> ${radius} metre | <strong>Yakınlık:</strong> Z:${zoomLevel.toFixed(1)}
+  </div>
+  <div style="margin-bottom: 30px; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+    <img src="${mapImgData}" style="width: 100%; display: block;" />
+  </div>
 
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Analiz Tarihi: ${new Date().toLocaleString('tr-TR')}`, 20, 28);
-  doc.text(`Hazirlayan: Tugba SERBETCI`, 20, 33);
-  doc.text(`Koordinatlar: ${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`, 20, 38);
-  doc.text(`Analiz Yaricaipi: ${radius} m | Zoom: ${zoomLevel}`, 20, 43);
+  <div
+    style="color: #1e293b; font-size: 18px; font-weight: 700; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6;">
+    Kategori Bazlı Tespit Listesi (${selectedItems.length} Toplam Kayıt)
+  </div>
 
-  const mapH = (canvas.height * (pageWidth - 40)) / canvas.width;
-  doc.addImage(mapImgData, 'PNG', 20, 50, pageWidth - 40, mapH);
+  ${groupedSelected.map(group => `
+  <div style="margin-bottom: 25px;">
+    <div
+      style="background-color: ${group.category.color}; color: white; padding: 10px 15px; font-weight: 800; border-radius: 8px 8px 0 0; font-size: 14px; text-transform: uppercase;">
+      ${group.category.label} (${group.items.length} Kayıt)
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr style="background-color: #f1f5f9; color: #475569;">
+          <th style="padding: 8px; text-align: left; border: 1px solid #e2e8f0; width: 75%;">Bina Adı / Türü</th>
+          <th style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; width: 25%;">Mesafe</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${group.items.map((item, idx) => `
+        <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#fafafa'};">
+          <td style="padding: 8px; border: 1px solid #e2e8f0; line-height: 1.4;">
+            <span style="font-weight: 600;">${item.name}</span><br />
+            <small style="color:#64748b">${item.type}</small>
+          </td>
+          <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e293b;">
+            ${item.distance}m
+          </td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  `).join('')}
 
-  let yPos = mapH + 65;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Tespit Edilen Kamu Alanlari Listesi", 20, yPos);
-  yPos += 10;
+  <div style="margin-top: 30px; text-align: center; color: #94a3b8; font-size: 10px; font-style: italic;">
+    Bu rapor Tuğba ŞERBETCİ tarafından geliştirilen CBS Analiz Sistemi üzerinden otomatik olarak üretilmiştir.
+  </div>
+  `;
 
-  doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
-  doc.setFillColor(59, 130, 246);
-  doc.rect(20, yPos - 5, pageWidth - 40, 7, 'F');
-  doc.text("Kategori", 22, yPos);
-  doc.text("Bina Adi / Detay", 60, yPos);
-  doc.text("Mesafe", pageWidth - 35, yPos);
-  yPos += 7;
+  document.body.appendChild(reportContent);
 
-  selectedItems.forEach((item, index) => {
-  if (yPos > 275) {
+  const finalCanvas = await window.html2canvas(reportContent, { useCORS: true, scale: 2 });
+  const finalImgData = finalCanvas.toDataURL('image/png', 1.0);
+
+  const imgWidth = pageWidth - 20;
+  const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 10;
+
+  doc.addImage(finalImgData, 'PNG', 10, position, imgWidth, imgHeight, undefined, 'FAST');
+  heightLeft -= pageHeight;
+
+  while (heightLeft > 0) {
+  position = heightLeft - imgHeight;
   doc.addPage();
-  yPos = 20;
-  doc.setFontSize(9); doc.setTextColor(255, 255, 255); doc.setFillColor(59, 130, 246); doc.rect(20, yPos - 5, pageWidth
-  - 40, 7, 'F');
-  doc.text("Kategori", 22, yPos); doc.text("Bina Adi / Detay", 60, yPos); doc.text("Mesafe", pageWidth - 35, yPos); yPos
-  += 7;
+  doc.addImage(finalImgData, 'PNG', 10, position, imgWidth, imgHeight, undefined, 'FAST');
+  heightLeft -= pageHeight;
   }
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139);
-  if (index % 2 === 1) { doc.setFillColor(248, 250, 252); doc.rect(20, yPos - 4, pageWidth - 40, 6, 'F'); }
-  doc.setFontSize(8);
-  doc.text(item.category.label.substring(0, 15), 22, yPos);
-  const truncatedName = item.name.length > 55 ? item.name.substring(0, 52) + "..." : item.name;
-  doc.text(truncatedName, 60, yPos);
-  doc.text(`${item.distance}m`, pageWidth - 35, yPos);
-  yPos += 6;
-  });
 
-  doc.setFontSize(7);
-  doc.setTextColor(148, 163, 184);
-  doc.text("Bu analiz Tugba SERBETCI tarafindan gelistirilen CBS Analiz Sistemi uzerinden uretilmistir.", pageWidth/2,
-  288, { align: 'center' });
+  document.body.removeChild(reportContent);
   doc.save(`Analiz_Raporu_${Date.now()}.pdf`);
+
   } catch (err) {
+  console.error(err);
   setErrorMsg("PDF oluşturulurken bir hata oluştu.");
   } finally {
   setPdfLoading(false);
@@ -639,7 +669,8 @@ if (window.innerWidth < 768) setIsSidebarOpen(false); } } catch (error) { setErr
                   <div className={`ml-auto w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center
                     transition-all ${selectedCategories.includes(cat.id) ? 'border-transparent' : 'border-slate-100' }`}
                     style={{ backgroundColor: selectedCategories.includes(cat.id) ? cat.color : 'transparent' }}>
-                    {selectedCategories.includes(cat.id) && <div className="w-1 h-1 bg-white rounded-full"></div>}</div>
+                    {selectedCategories.includes(cat.id) && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                  </div>
                 </div>
                 ))}
               </div>
