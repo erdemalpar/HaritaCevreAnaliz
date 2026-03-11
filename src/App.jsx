@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  MapPin, 
-  Search, 
-  School, 
-  Hospital, 
-  Building2, 
-  TrainFront, 
-  Bus, 
-  ShoppingBag, 
+import {
+  MapPin,
+  Search,
+  School,
+  Hospital,
+  Building2,
+  TrainFront,
+  Bus,
+  ShoppingBag,
   Info,
   ExternalLink,
   Navigation,
@@ -32,10 +32,10 @@ const App = () => {
   const [results, setResults] = useState([]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState(['education', 'health', 'government', 'cadastre', 'transport', 'shopping', 'social']);
-  const [baseLayer, setBaseLayer] = useState('osm'); 
+  const [baseLayer, setBaseLayer] = useState('osm');
   const [map, setMap] = useState(null);
   const [activeAccordion, setActiveAccordion] = useState(null);
-  
+
   const markersRef = useRef([]);
   const linesRef = useRef([]);
   const circleRef = useRef(null);
@@ -58,13 +58,13 @@ const App = () => {
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; 
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
   };
 
@@ -138,19 +138,19 @@ const App = () => {
   }, [coords, radius, map, baseLayer]);
 
   const identifyCategory = (tags) => {
-    if (tags.office?.match(/land_registry/) || tags.government?.match(/cadastre|land_registry/) || tags.name?.match(/Tapu|Kadastro/i)) 
+    if (tags.office?.match(/land_registry/) || tags.government?.match(/cadastre|land_registry/) || tags.name?.match(/Tapu|Kadastro/i))
       return categories.find(c => c.id === 'cadastre');
-    if (tags.amenity?.match(/school|university|kindergarten|college|library/)) 
+    if (tags.amenity?.match(/school|university|kindergarten|college|library/))
       return categories.find(c => c.id === 'education');
-    if (tags.amenity?.match(/hospital|doctors|clinic|pharmacy|dentist/)) 
+    if (tags.amenity?.match(/hospital|doctors|clinic|pharmacy|dentist/))
       return categories.find(c => c.id === 'health');
-    if (tags.amenity?.match(/townhall|courthouse|police|post_office|fire_station/)) 
+    if (tags.amenity?.match(/townhall|courthouse|police|post_office|fire_station/))
       return categories.find(c => c.id === 'government');
-    if (tags.public_transport || tags.highway?.match(/bus_stop|platform/) || tags.railway?.match(/subway|station|stop/) || tags.amenity === 'bus_station') 
+    if (tags.public_transport || tags.highway?.match(/bus_stop|platform/) || tags.railway?.match(/subway|station|stop/) || tags.amenity === 'bus_station')
       return categories.find(c => c.id === 'transport');
-    if (tags.shop?.match(/mall|supermarket|department_store|convenience/)) 
+    if (tags.shop?.match(/mall|supermarket|department_store|convenience/))
       return categories.find(c => c.id === 'shopping');
-    if (tags.amenity?.match(/cinema|theatre|arts_centre|community_centre|social_facility|marketplace/)) 
+    if (tags.amenity?.match(/cinema|theatre|arts_centre|community_centre|social_facility|marketplace/))
       return categories.find(c => c.id === 'social');
     return { id: 'other', color: '#64748b', label: 'Diğer' };
   };
@@ -246,12 +246,12 @@ const App = () => {
           dashArray: '8, 12',
           opacity: 0.6
         })
-        .bindTooltip(`${item.distance}m`, {
-          permanent: true,
-          direction: 'center',
-          className: 'distance-label'
-        })
-        .addTo(map);
+          .bindTooltip(`${item.distance}m`, {
+            permanent: true,
+            direction: 'center',
+            className: 'distance-label'
+          })
+          .addTo(map);
         linesRef.current.push(line);
       });
 
@@ -277,7 +277,7 @@ const App = () => {
   }, {});
 
   const toggleCategory = (id) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -291,7 +291,7 @@ const App = () => {
           </div>
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-slate-800 leading-none">CBS Analiz Sistemi</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Kamu & Parsel Tespit</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Tuğba ŞERBETCİ</p>
           </div>
         </div>
         <div className="hidden lg:flex items-center gap-4 text-xs text-slate-500 font-mono bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
@@ -309,13 +309,13 @@ const App = () => {
               <div className="flex flex-col">
                 <span className="text-[9px] font-bold text-slate-400 mb-1">ENLEM</span>
                 <input type="number" step="0.0001" value={coords.lat}
-                  onChange={(e) => setCoords({...coords, lat: parseFloat(e.target.value) || 0})}
+                  onChange={(e) => setCoords({ ...coords, lat: parseFloat(e.target.value) || 0 })}
                   className="border border-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-slate-50" />
               </div>
               <div className="flex flex-col">
                 <span className="text-[9px] font-bold text-slate-400 mb-1">BOYLAM</span>
                 <input type="number" step="0.0001" value={coords.lon}
-                  onChange={(e) => setCoords({...coords, lon: parseFloat(e.target.value) || 0})}
+                  onChange={(e) => setCoords({ ...coords, lon: parseFloat(e.target.value) || 0 })}
                   className="border border-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-slate-50" />
               </div>
             </div>
@@ -389,7 +389,7 @@ const App = () => {
 
           {results.length > 0 && (
             <div className="absolute top-6 bottom-6 right-6 w-96 bg-white shadow-2xl z-20 flex flex-col overflow-hidden border-r-8 border-r-blue-600 rounded-[2.5rem] animate-in slide-in-from-right-10 duration-500">
-              
+
               <div className="flex-none p-6 border-b bg-white">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -410,7 +410,7 @@ const App = () => {
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar bg-slate-50/50">
                 {Object.values(groupedResults).map(({ category, items }) => (
                   <div key={category.id} className="border border-slate-100 rounded-3xl bg-white overflow-hidden shadow-sm transition-all hover:shadow-md">
-                    <button 
+                    <button
                       onClick={() => setActiveAccordion(activeAccordion === category.id ? null : category.id)}
                       className="w-full px-5 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors gap-2"
                       style={{ borderLeft: `6px solid ${category.color}` }}
@@ -420,10 +420,10 @@ const App = () => {
                         <span className="font-black text-slate-700 uppercase tracking-widest text-xs truncate text-left">{category.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                         <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-500">{items.length}</span>
-                         <div className="text-slate-400">
-                           {activeAccordion === category.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                         </div>
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-500">{items.length}</span>
+                        <div className="text-slate-400">
+                          {activeAccordion === category.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </div>
                       </div>
                     </button>
 
@@ -433,7 +433,7 @@ const App = () => {
                           <div key={idx} className="px-6 py-24 border border-slate-100 rounded-[2.5rem] bg-slate-50 hover:bg-white hover:border-blue-200 hover:shadow-xl transition-all group relative overflow-hidden ring-1 ring-slate-100 flex flex-col justify-between min-h-[550px]">
                             <div className="flex justify-between items-start mb-12">
                               <span className="text-[10px] font-black px-3 py-1.5 rounded-xl text-white uppercase tracking-widest shadow-sm"
-                                    style={{ backgroundColor: category.color }}>
+                                style={{ backgroundColor: category.color }}>
                                 {item.type}
                               </span>
                               <div className="flex flex-col items-end gap-1">
@@ -446,10 +446,10 @@ const App = () => {
                               </div>
                             </div>
                             <div className="flex-1 flex flex-col justify-center">
-                                <h4 className="text-xl font-black text-slate-800 leading-tight tracking-tight mb-4" title={item.name}>{item.name}</h4>
-                                <p className="text-sm text-slate-400 font-bold uppercase tracking-wider italic">Konum Analiz Detayı</p>
+                              <h4 className="text-xl font-black text-slate-800 leading-tight tracking-tight mb-4" title={item.name}>{item.name}</h4>
+                              <p className="text-sm text-slate-400 font-bold uppercase tracking-wider italic">Konum Analiz Detayı</p>
                             </div>
-                            <a 
+                            <a
                               href={`https://parselsorgu.tkgm.gov.tr/#ara/cografi/${item.lat}/${item.lon}`}
                               target="_blank"
                               rel="noopener noreferrer"
