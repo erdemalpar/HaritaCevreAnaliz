@@ -27,7 +27,7 @@ Projeyi yerelinizde çalıştırmak için aşağıdaki adımları izleyin:
 
 1.  Depoyu klonlayın:
     ```bash
-    git clone https://github.com/erdem/HaritaCevreAnaliz.git
+    git clone https://github.com/erdemalpar/HaritaCevreAnaliz.git
     ```
 2.  Proje dizinine gidin:
     ```bash
@@ -46,7 +46,7 @@ Projeyi yerelinizde çalıştırmak için aşağıdaki adımları izleyin:
 
 Uygulamanın çalışan bir sürümüne aşağıdaki bağlantıdan ulaşabilirsiniz:
 
-👉 **[CBS Analiz Sistemi Demo](https://erdem.github.io/HaritaCevreAnaliz/)** *(Temsili link, GitHub Pages yayımı sonrası güncellenmelidir)*
+👉 **[CBS Analiz Sistemi Demo](https://erdemalpar.github.io/HaritaCevreAnaliz/)**
 
 ## 📄 Lisans
 
