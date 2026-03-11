@@ -22,7 +22,8 @@ import {
   Store,
   Theater,
   Ruler,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from 'lucide-react';
 
 const App = () => {
@@ -45,10 +46,11 @@ const App = () => {
     { id: 'education', label: 'Eğitim', icon: <School size={18} />, color: '#3b82f6', tags: '["amenity"~"school|university|kindergarten|college|library"]' },
     { id: 'health', label: 'Sağlık', icon: <Hospital size={18} />, color: '#ef4444', tags: '["amenity"~"hospital|doctors|clinic|pharmacy|dentist"]' },
     { id: 'cadastre', label: 'Tapu ve Kadastro', icon: <Landmark size={18} />, color: '#0891b2', tags: '["office"~"government|land_registry"]["government"~"cadastre|land_registry|tax"]' },
-    { id: 'government', label: 'Kamu (Belediye/Valilik)', icon: <Building2 size={18} />, color: '#f59e0b', tags: '["amenity"~"townhall|courthouse|police|post_office|fire_station"]' },
+    { id: 'government', label: 'Resmi Kurumlar', icon: <Building2 size={18} />, color: '#f59e0b', tags: '["amenity"~"townhall|courthouse|police|post_office|fire_station|ministry|public_building"]["office"~"government|ministry|public_administration"]["government"~"ministry|national_assembly|administrative"]' },
+    { id: 'military', label: 'Askeri Alanlar', icon: <Shield size={18} />, color: '#166534', tags: '["landuse"~"military"]["military"~"barracks|airfield|base|range"]' },
     { id: 'transport', label: 'Ulaşım (Durak/İstasyon)', icon: <Bus size={18} />, color: '#10b981', tags: '["highway"~"bus_stop|platform"]["railway"~"station|subway_entrance|stop"]["amenity"~"bus_station|taxi"]' },
     { id: 'shopping', label: 'AVM / Market', icon: <Store size={18} />, color: '#db2777', tags: '["shop"~"mall|supermarket|department_store|convenience"]' },
-    { id: 'social', label: 'Sosyal / Kültürel', icon: <Theater size={18} />, color: '#8b5cf6', tags: '["amenity"~"cinema|theatre|arts_centre|community_centre|social_facility|marketplace"]' },
+    { id: 'social', label: 'Sosyal / Kültürel', icon: <Theater size={18} />, color: '#8b5cf6', tags: '["amenity"~"cinema|theatre|arts_centre|community_centre|social_facility|marketplace"]["historic"~"monument|memorial"]' },
   ];
 
   const baseMaps = {
@@ -157,19 +159,27 @@ const App = () => {
   }, [coords, radius, map, baseLayer]);
 
   const identifyCategory = (tags) => {
-    if (tags.office?.match(/land_registry/) || tags.government?.match(/cadastre|land_registry/) || tags.name?.match(/Tapu|Kadastro/i))
+    const name = tags.name || "";
+    if (tags.office?.match(/land_registry/) || tags.government?.match(/cadastre|land_registry/) || name.match(/Tapu|Kadastro/i))
       return categories.find(c => c.id === 'cadastre');
     if (tags.amenity?.match(/school|university|kindergarten|college|library/))
       return categories.find(c => c.id === 'education');
     if (tags.amenity?.match(/hospital|doctors|clinic|pharmacy|dentist/))
       return categories.find(c => c.id === 'health');
-    if (tags.amenity?.match(/townhall|courthouse|police|post_office|fire_station/))
+    if (tags.landuse === 'military' || tags.military || name.match(/Kışla|Askeri|Orduevi|Komutanlık/i))
+      return categories.find(c => c.id === 'military');
+    if (tags.amenity?.match(/townhall|courthouse|police|post_office|fire_station|ministry|public_building/) ||
+      tags.office?.match(/government|ministry|public_administration/) ||
+      tags.government?.match(/ministry|national_assembly|administrative/) ||
+      name.match(/Bakanlığı|Müdürlüğü|Valiliği|Kaymakamlığı|Belediyesi|Meclis|TBMM/i))
       return categories.find(c => c.id === 'government');
     if (tags.public_transport || tags.highway?.match(/bus_stop|platform/) || tags.railway?.match(/subway|station|stop/) || tags.amenity === 'bus_station')
       return categories.find(c => c.id === 'transport');
     if (tags.shop?.match(/mall|supermarket|department_store|convenience/))
       return categories.find(c => c.id === 'shopping');
-    if (tags.amenity?.match(/cinema|theatre|arts_centre|community_centre|social_facility|marketplace/))
+    if (tags.amenity?.match(/cinema|theatre|arts_centre|community_centre|social_facility|marketplace/) ||
+      tags.historic?.match(/monument|memorial/) ||
+      name.match(/Anıtkabir|Anıt/i))
       return categories.find(c => c.id === 'social');
     return { id: 'other', color: '#64748b', label: 'Diğer' };
   };
