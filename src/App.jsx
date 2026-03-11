@@ -96,7 +96,18 @@ const App = () => {
       }
     };
     const initMap = () => {
-      if (!window.L || map) return;
+      if (!window.L) return;
+
+      // Eğer container üzerinde zaten bir harita varsa, onu kaldır
+      const container = window.L.DomUtil.get('map-container');
+      if (container !== null) {
+        container._leaflet_id = null;
+      }
+
+      if (map) {
+        map.remove();
+      }
+
       const leafletMap = window.L.map('map-container', {
         center: [coords.lat, coords.lon],
         zoom: 15,
@@ -112,6 +123,14 @@ const App = () => {
       setMap(leafletMap);
     };
     loadLeaflet();
+
+    // Cleanup function
+    return () => {
+      if (map) {
+        map.remove();
+        setMap(null);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -187,9 +206,13 @@ const App = () => {
     `;
 
     try {
-      const response = await fetch('https://overpass-api.de/api/interpreter', {
+      // CORS sorunları için cache-busting parametresi ekliyoruz
+      const response = await fetch(`https://overpass-api.de/api/interpreter?t=${Date.now()}`, {
         method: 'POST',
-        body: query
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `data=${encodeURIComponent(query)}`
       });
 
       if (!response.ok) throw new Error(`Sunucu hatası: ${response.status}`);
